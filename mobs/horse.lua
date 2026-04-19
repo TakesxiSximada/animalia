@@ -43,6 +43,19 @@ local function serialize_horse_inventory(self)
 	self._inventory = self:memorize("_inventory", minetest.serialize(stored))
 end
 
+local function get_current_texture(self)
+	local props = self.object and self.object:get_properties()
+	local textures = props and props.textures
+	if textures
+	and textures[1] then
+		return textures[1]
+	end
+
+	local texture_no = self.texture_no or self:recall("texture_no") or 1
+	local base_textures = self.textures or {}
+	return base_textures[texture_no] or base_textures[1] or "animalia_horse_1.png"
+end
+
 local function get_form(self, player_name)
 	local inv = create_horse_inventory(self)
 	if inv
@@ -52,7 +65,7 @@ local function get_form(self, player_name)
 
 	local frame_range = self.animations["stand"].range
 	local frame_loop = frame_range.x .. "," ..  frame_range.y
-	local texture = self:get_props().textures[1]
+	local texture = get_current_texture(self)
 	local form = {
 		"formspec_version[3]",
 		"size[10.5,10]",
@@ -88,7 +101,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 		if fields.quit or fields.key_enter then
 			form_obj[name] = nil
 			serialize_horse_inventory(ent)
-			minetest.remove_detached_inventory("animlaia:horse_" .. name)
+			minetest.remove_detached_inventory("animalia:horse_" .. name)
 		end
 	end
 
@@ -149,11 +162,14 @@ local function set_pattern(self)
 			return
 		end
 	end
-	local colors = avlbl_colors[self.texture_no]
+	local texture_no = self.texture_no or self:recall("texture_no") or 1
+	local colors = avlbl_colors[texture_no]
+	if not colors then return end
 	local color_no = self:recall("color_no") or self:memorize("color_no", random(#colors))
 	if not colors[color_no] then return end
 	local pattern = "(" .. patterns[pattern_no] .. "^[mask:" .. colors[color_no] .. ")"
-	local texture = self.textures[self.texture_no]
+	local texture = self.textures[texture_no] or self.textures[1]
+	if not texture then return end
 	self.object:set_properties({
 		textures = {texture .. "^" .. pattern}
 	})
@@ -274,7 +290,7 @@ creatura.register_mob("animalia:horse", {
 	set_saddle = function(self, saddle)
 		if saddle then
 			self.saddled = self:memorize("saddled", true)
-			local texture = self.object:get_properties().textures[1]
+			local texture = get_current_texture(self)
 			self.object:set_properties({
 				textures = {texture .. "^animalia_horse_saddle.png"}
 			})
@@ -303,7 +319,7 @@ creatura.register_mob("animalia:horse", {
 		ent.growth_scale = 0.7
 		local tex_no = self.texture_no
 		local mate_ent = mate and mate:get_luaentity()
-		if mate_ent
+		if not mate_ent
 		or not mate_ent.speed
 		or not mate_ent.jump_power
 		or not mate_ent.max_health then
