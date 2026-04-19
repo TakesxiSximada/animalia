@@ -381,6 +381,12 @@ creatura.register_mob("animalia:horse", {
 	end,
 
 	on_rightclick = function(self, clicker)
+		local wielded_name = clicker:get_wielded_item():get_name()
+		if wielded_name == "animalia:net"
+		or wielded_name == "mobs:net" then
+			return
+		end
+
 		if animalia.feed(self, clicker, false, true) then
 			return
 		end
@@ -392,8 +398,6 @@ creatura.register_mob("animalia:horse", {
 		if animalia.set_nametag(self, clicker) then
 			return
 		end
-
-		local wielded_name = clicker:get_wielded_item():get_name()
 
 		if wielded_name == "animalia:saddle" then
 			self:set_saddle(true)
